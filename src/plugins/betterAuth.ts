@@ -1,27 +1,36 @@
 import { Elysia } from "elysia";
+import type { Session, User } from "better-auth";
 import { auth, OpenAPI } from "@/lib/auth.ts";
+
+export type AuthContext = {
+	user: User;
+	session: Session;
+};
+
+export type ContextWithAuth = {
+	auth: AuthContext;
+};
+
+export function getAuth(context: any): AuthContext {
+	return (context as ContextWithAuth).auth;
+}
 
 export const betterAuth = new Elysia({ name: "better-auth" })
 	.mount(auth.handler)
 	.macro({
 		auth: {
-			async resolve({ request: { headers } }) {
+			async resolve({ status, request: { headers } }) {
 				const session = await auth.api.getSession({
 					headers,
 				});
-
 				if (!session) {
-					return {
-						isAuthenticated: false,
-						user: null,
-						session: null,
-					};
+					return status(401);
 				}
-
 				return {
-					isAuthenticated: true,
-					user: session.user,
-					session: session.session,
+					auth: {
+						user: session.user,
+						session: session.session,
+					} as AuthContext,
 				};
 			},
 		},
@@ -29,4 +38,3 @@ export const betterAuth = new Elysia({ name: "better-auth" })
 
 export const betterAuthComponents = await OpenAPI.components;
 export const betterAuthPaths = await OpenAPI.getPaths();
-
