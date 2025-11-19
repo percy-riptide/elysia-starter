@@ -9,10 +9,17 @@ import { securityHeaders } from "@/plugins/securityHeaders.ts";
 import { httpsEnforcement } from "@/plugins/httpsEnforcement.ts";
 import { requestTimeout } from "@/plugins/requestTimeout.ts";
 import { requestValidation } from "@/plugins/requestValidation.ts";
-import { betterAuth, betterAuthComponents, betterAuthPaths } from "@/plugins/betterAuth.ts";
+import { betterAuth, authMiddleware, betterAuthComponents, betterAuthPaths } from "@/plugins/betterAuth.ts";
 import { generalRateLimit } from "@/plugins/rateLimiter.ts";
 import { loggerPlugin } from "@/plugins/logger.ts";
 import { pool } from "@/db/index.ts";
+
+const openApiConfig = {
+	documentation: {
+		components: await betterAuthComponents,
+		paths: await betterAuthPaths,
+	},
+};
 
 const getAllowedOrigins = (): string[] | boolean => {
 	const origins = config.ALLOWED_ORIGINS;
@@ -52,15 +59,11 @@ export const app = new Elysia()
 		methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
 		allowedHeaders: ["Content-Type", "Authorization"],
 	}))
-	.use(openapi({
-		documentation: {
-			components: betterAuthComponents,
-			paths: betterAuthPaths,
-		},
-	}))
+	.use(authMiddleware)
+	.use(openapi(openApiConfig))
 	.use(generalRateLimit)
 	.use(betterAuth)
-	.get("/", async (context: Context) => {
+	.get("/", async () => {
 		return {
 			message: "Hello World",
 		};

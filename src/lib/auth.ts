@@ -2,15 +2,37 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { openAPI } from "better-auth/plugins";
 import { db } from "@/db/index.ts";
+import { authSchema } from "@/db/schema.ts";
+import { config } from "@/config.ts";
 
 export const auth = betterAuth({
     basePath: "/api/v1/auth",
     database: drizzleAdapter(db, {
         provider: "mysql",
+        schema: authSchema,
     }),
-    emailAndPassword: { 
-        enabled: true, 
+    advanced: {
+        database: {
+          generateId: false,
+        },
     },
+    emailAndPassword: { 
+        enabled: true,
+        minPasswordLength: 8,
+        autoSignIn: true,
+        password: {
+            hash: (password: string) => Bun.password.hash(password),
+            verify: ({ password, hash }) => Bun.password.verify(password, hash),
+        },
+        session: {
+            expiresIn: 60 * 60 * 24,
+            cookieCache: {
+              enabled: true,
+              maxAge: 60 * 5,
+            },
+        },
+    },
+    trustedOrigins: config.ALLOWED_ORIGINS.split(","),
     plugins: [
         openAPI(),
     ],

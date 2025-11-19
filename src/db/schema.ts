@@ -59,4 +59,6 @@ import { generateUUID } from "@/lib/uuid.ts";
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
-  }); 
+  });
+  
+  export const authSchema = { user, session, account, verification };
